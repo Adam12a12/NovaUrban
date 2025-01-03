@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تنبيه المخاطر</title>
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-
+  <script
+  type="text/javascript"
+  src="{{ url_for('static', filename='js/scan.js') }}">
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style/base.css') }}">
 </head>
 <body>
   <div class="container">
     <h1>تنبيه المخاطر في الصور</h1>
       <div class="btn-group">
-          <button class="btn" id="start-btn" type="submit" onclick="scan">تشغيل التطبيق</button>
+          <button class="btn" id="start-btn" onclick="run()">تشغيل التطبيق</button>
       </div>
     </form> 
     <div class="status">تم تحميل التطبيق، اضغط على الزر لتشغيل المعالجة.</div>
