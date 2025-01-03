@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تنبيه المخاطر</title>
+  {% comment %} <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script> {% endcomment %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'style/base.css'%}">
+</head>
+<body>
+  <div class="container">
+    <h1>تنبيه المخاطر في الصور</h1>
+    <form method="POST" action="{% url 'scan' %}">
+      {% csrf_token %} 
+      {% block content%}
+      {% endblock %}
+    </form> 
+    <div class="status">تم تحميل التطبيق، اضغط على الزر لتشغيل المعالجة.</div>
+    <div class="alert" id="alert"></div>
+    <div id="loading">جاري معالجة الصور... يرجى الانتظار.</div>
+  </div>
+</body>
