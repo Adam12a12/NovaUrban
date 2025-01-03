@@ -16,6 +16,7 @@ import os
 from ultralytics import YOLO
 from dotenv import load_dotenv
 from PIL import Image
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -39,17 +40,17 @@ WEIGHTS = {
     'resnet': 0.3
 }
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 
 
 IMAGES_FOLDER = BASE_DIR / "pictures"
 
 OUTPUT_FOLDER = BASE_DIR / "output"
 
-yolo_model = YOLO(settings.BASE_DIR / "ai_models/best.pt", task="predict")
+yolo_model = YOLO(BASE_DIR / "ai_models/best.pt", task="predict")
 
-RESNET_MODEL_PATH = settings.BASE_DIR / "ai_models/ResNet50/resnet50_model.h5"
-resnet_model = load_model(RESNET_MODEL_PATH)
+RESNET_MODEL_PATH = BASE_DIR / "ai_models/ResNet50/resnet50_model.h5"
+# resnet_model = load_model(RESNET_MODEL_PATH)
 
 VIDEO_STREAM = cv2.VideoCapture(CAMERA_URL)
 
@@ -111,7 +112,7 @@ def send_alert(message):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('base.html')
 
 def get_video_frame():
     global VIDEO_STREAM
