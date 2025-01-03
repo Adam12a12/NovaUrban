@@ -33,7 +33,6 @@ telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
 email_address = os.getenv("EMAIL_ADDRESS")
 email_password = os.getenv("EMAIL_PASSWORD")
 
-CAMERA_URL = "http://172.16.26.49:8080/video"
 
 WEIGHTS = {
     'yolo': 0.7,
@@ -49,15 +48,17 @@ OUTPUT_FOLDER = BASE_DIR / "output"
 
 yolo_model = YOLO(BASE_DIR / "ai_models/best.pt", task="predict")
 
-RESNET_MODEL_PATH = BASE_DIR / "ai_models/resnet50_model.h5"
-resnet_model = load_model(RESNET_MODEL_PATH)
+def cv_connect():
+    CAMERA_URL = "http://172.16.26.49:8080/video"
+    RESNET_MODEL_PATH = BASE_DIR / "ai_models/resnet50_model.h5"
+    resnet_model = load_model(RESNET_MODEL_PATH)
 
-VIDEO_STREAM = cv2.VideoCapture(CAMERA_URL)
+    VIDEO_STREAM = cv2.VideoCapture(CAMERA_URL)
 
-if not VIDEO_STREAM.isOpened():
-    logger.error("Unable to connect to CV")
-else:
-    logger.info("CV connected")
+    if not VIDEO_STREAM.isOpened():
+        logger.error("Unable to connect to CV")
+    else:
+        logger.info("CV connected")
 
 def preprocess_image(image):
     image = cv2.resize(image, (224, 224))
@@ -171,9 +172,20 @@ def handle_connect(sid):
             logger.error("Failed getting camera frame")
             break
 
+def read_image_files():
+    image_files = [os.path.join(IMAGES_FOLDER, f) for f in os.listdir(IMAGES_FOLDER) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+
+    if not image_files:
+        logger.error("No images found.")
+    else:
+        logger.info(f"Found {len(image_files)} images to process.")
+
 def process_images():
     processed_count = 0
     dangerous_images = []
+    image_files = read_image_files() 
+    if not read_image_files():
+        return NULL
     for image_file in image_files:
         try:
             frame = cv2.imread(image_file)
