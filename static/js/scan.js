@@ -1,8 +1,5 @@
-
-
-document.getElementById('start-btn').onclick = async function() {
+  async function run(){
     document.getElementById('loading').style.display = 'block';
-
     try {
       const response = await fetch('/start_processing');
       const data = await response.json();
