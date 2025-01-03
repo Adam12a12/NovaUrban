@@ -88,7 +88,7 @@ def send_telegram_alert(message):
         if response.status_code == 200:
             logger.info("Telegram message sent")
         else:
-            logger.warning(f"فشل في إرسال تليجرام. الكود: {response.status_code}")
+            logger.warning(f"Telegram message sending failed: {response.status_code}")
     except Exception as e:
         logger.error(f"Telegram error: {e}")
 
@@ -108,7 +108,7 @@ def send_email_alert(subject, message, to_email):
 def send_alert(message):
     send_whatsapp_alert(message)
     send_telegram_alert(message)
-    send_email_alert("تنبيه خطر", message, email_address)
+    send_email_alert("Danger alert", message, email_address)
 
 @app.route('/')
 def index():
@@ -160,16 +160,52 @@ def handle_connect(sid):
 
 
             if vote == 1:
-                send_alert("خطر اكتُشف في الموقع!")
+                send_alert("Danger detected on site!")
 
             if time.time() - start_time >= 10:
-                logger.info("الكود يعمل بشكل صحيح، تم تنفيذ الكشف!")
+                logger.info("Detecting worked correctly!")
                 start_time = time.time()
 
             time.sleep(1)
         else:
-            logger.error("فشل في الحصول على الإطار من الكاميرا.")
+            logger.error("Failed getting camera frame")
             break
+
+def process_images():
+    processed_count = 0
+    dangerous_images = []
+    for image_file in image_files:
+        try:
+            frame = cv2.imread(image_file)
+            if frame is None:
+                logger.warning(f"Error reading image: {image_file} Skipping.")
+                continue
+
+            results = yolo_model(frame)
+            detections = results[0].boxes.data.cpu().numpy() if len(results[0].boxes) > 0 else []
+
+            draw_detections(frame, detections)
+            output_path = os.path.join(OUTPUT_FOLDER, f"result_{os.path.basename(image_file)}")
+            cv2.imwrite(output_path, frame)
+            logger.info(f"Edited image is saved in: {output_path}")
+            processed_count += 1
+            if not any([det[5] == 0 for det in detections]):
+                dangerous_images.append(f"results/{os.path.basename(output_path)}")
+                message = "No helmet detected in the image."
+                send_email(output_path, "Warnging: no helmet detected", message)
+                send_telegram_message(output_path, message)
+
+        except Exception as e:
+            logger.error(f"Error processing image {image_file}: {e}")
+
+    logger.info(f"Processed {processed_count} images out of {len(image_files)} image.")
+    return dangerous_images
+
+
+@app.route('/start_processing')
+def start_processing():
+    dangerous_images = process_images()
+    return jsonify({'processed_count': len(dangerous_images), 'processed_images': dangerous_images})
 
 if __name__ == "__main__":
     logger.info("Running App")
