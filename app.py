@@ -49,8 +49,8 @@ OUTPUT_FOLDER = BASE_DIR / "output"
 
 yolo_model = YOLO(BASE_DIR / "ai_models/best.pt", task="predict")
 
-RESNET_MODEL_PATH = BASE_DIR / "ai_models/ResNet50/resnet50_model.h5"
-# resnet_model = load_model(RESNET_MODEL_PATH)
+RESNET_MODEL_PATH = BASE_DIR / "ai_models/resnet50_model.h5"
+resnet_model = load_model(RESNET_MODEL_PATH)
 
 VIDEO_STREAM = cv2.VideoCapture(CAMERA_URL)
 
