@@ -2,8 +2,5 @@ __pycache__
 *.pyc
 *.sqlite3
 env
-ai_models/*
-pictures/*
-output/*
 .vscode
 .venv
