@@ -106,6 +106,21 @@ def send_email_alert(subject, message, to_email):
     except Exception as e:
         logger.error(f"Error sending email: {e}")
 
+@app.route('/send_notification')
+def send_mobile_notification():
+    data = { 
+        'to': DEVICE_TOKEN, 'notification': { 
+            'title': 'Danger Alert', 
+            'body': 'Danger description' } }
+    headers = { 
+        'Authorization': 'key=' + SERVER_KEY, 
+        'Content-Type': 'application/json',
+            }
+    title = 'Danger Alert'
+    body = 'Danger description'
+    result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body)
+    print (result)
+
 def send_alert(message):
     send_whatsapp_alert(message)
     send_telegram_alert(message)
@@ -213,10 +228,24 @@ def process_images():
     logger.info(f"Processed {processed_count} images out of {len(image_files)} image.")
     return dangerous_images
 
+def video_feed(): 
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame') 
+    
+def gen_frames(): 
+    cap = cv2.VideoCapture(0) 
+    while True: 
+        success, frame = cap.read() 
+        if not success: 
+            break 
+        else: 
+            ret, buffer = cv2.imencode('.jpg', frame) 
+            frame = buffer.tobytes() 
+            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/start_processing')
 def start_processing():
-    dangerous_images = process_images()
+    # dangerous_images = process_images()
+    send_mobile_app_notification()
     return jsonify({'processed_count': len(dangerous_images), 'processed_images': dangerous_images})
 
 if __name__ == "__main__":
