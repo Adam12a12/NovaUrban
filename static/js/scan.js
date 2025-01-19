@@ -1,4 +1,4 @@
-async function run_imgs(){
+async function run(){
   document.getElementById('loading').style.display = 'block';
   try {
     const response = await fetch('/start_processing');
@@ -7,26 +7,10 @@ async function run_imgs(){
 
     document.getElementById('loading').style.display = 'none';
 
-    alertDiv.textContent =' تم معالجة ${data.processed_count} صورة تحتوي على مخاطر.';
 
   } catch (error) {
     console.error('خطأ أثناء المعالجة:', error);
     document.getElementById('loading').style.display = 'none';
     document.getElementById('alert').textContent = 'حدث خطأ أثناء معالجة الصور.';
-  }
-}
-async function run_cam(){
-  document.getElementById('loading').style.display = 'block';
-  try {
-    const response = await fetch('/cv_connect');
-    const data = await response.json();
-    const alertDiv = document.getElementById('alert');
-
-    document.getElementById('loading').style.display = 'none';
-
-  } catch (error) {
-    console.error('خطأ أثناء الإتصال:', error);
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('alert').textContent = 'حدث خطأ أثناء الإتصال بالكاميرا.';
   }
 }

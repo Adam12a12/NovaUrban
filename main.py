@@ -4,6 +4,7 @@ from pyfcm import FCMNotification
 import cv2
 import os
 from dotenv import load_dotenv
+import ffmpeg
 
 load_dotenv()
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
@@ -17,7 +18,7 @@ fcm = FCMNotification(service_account_file="env/novaurban-7d541-firebase-adminsd
 # Used for debugging purposes and imshow()
 os.environ["XDG_SESSION_TYPE"] = "xcb"
 QT_DEBUG_PLUGINS=1
-
+is_recording = False
 
 
 @app.route('/send_notification')
@@ -35,7 +36,7 @@ def send():
     result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body)
     print (result)
 
-@app.route('/video_feed')
+@app.route('/video_feed',methods=['GET'])
 def video_feed():
     return Response(start_processing(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -53,6 +54,10 @@ def start_processing():
     
     while True:
         ret, frame = cam.read()
+        what, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        buffer.tobytes() 
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         # cv2.imshow('Camera', frame)
         if is_recording:
             out.write(frame)
