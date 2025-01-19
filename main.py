@@ -55,10 +55,10 @@ def start_processing():
     while True:
         ret, frame = cam.read()
         what, buffer = cv2.imencode('.jpg', frame)
+        # cv2.imshow('Camera', frame)
         frame = buffer.tobytes()
         buffer.tobytes() 
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        # cv2.imshow('Camera', frame)
         if is_recording:
             out.write(frame)
         if cv2.waitKey(1) == ord('q'):
