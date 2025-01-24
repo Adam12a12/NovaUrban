@@ -4,7 +4,7 @@ from pyfcm import FCMNotification
 import cv2
 import os
 from dotenv import load_dotenv
-import ffmpeg
+
 
 load_dotenv()
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
