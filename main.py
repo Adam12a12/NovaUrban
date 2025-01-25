@@ -1,15 +1,19 @@
-from flask import Flask, request, jsonify, Response, render_template
+from flask import Flask, request, jsonify, Response, render_template, url_for
 import logging
 from pyfcm import FCMNotification
 import cv2
 import os
 from dotenv import load_dotenv
+from datetime import datetime
+
 
 
 load_dotenv()
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN')
 SERVER_KEY = os.getenv('SERVER_KEY')
 PROJECT_ID = os.getenv('PROJECT_ID')
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
@@ -22,18 +26,18 @@ is_recording = False
 
 
 @app.route('/send_notification')
-def send():
+def send_notification():
+    now = datetime.now()
+    today = datetime.today()
+    time = now.strftime('%H:%M;%S')
+    date = today.strftime('%d-%m-%Y')
     data = { 
-        'to': DEVICE_TOKEN, 'notification': { 
-            'title': 'Danger Alert', 
-            'body': 'Danger description' } }
-    headers = { 
-        'Authorization': 'key=' + SERVER_KEY, 
-        'Content-Type': 'application/json',
-            }
+        'time': time,
+        'date': date
+        } 
     title = 'Danger Alert'
     body = 'Danger description'
-    result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body)
+    result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body, data_payload=data)
     print (result)
 
 @app.route('/video_feed',methods=['GET'])
