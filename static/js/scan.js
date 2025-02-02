@@ -1,16 +1,7 @@
-async function run(){
-  document.getElementById('loading').style.display = 'block';
-  try {
-    const response = await fetch('/start_processing');
-    const data = await response.json();
-    const alertDiv = document.getElementById('alert');
+async function run_cam(){
+  fetch('/process_video'); //TODO: add daemon start and stop funcs to view
+}
 
-    document.getElementById('loading').style.display = 'none';
-
-
-  } catch (error) {
-    console.error('خطأ أثناء المعالجة:', error);
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('alert').textContent = 'حدث خطأ أثناء معالجة الصور.';
-  }
+async function video_feed(){
+  fetch('/video_feed');
 }
