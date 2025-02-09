@@ -112,7 +112,7 @@ def video_feed(cam_index):
     global cameras
     if cam_index >= len(cameras):
         return "Camera index out of range", 404
-    return Response(gen_video_feed(0), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen_video_feed(cam_index), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def initialize_cameras():
     global cameras, frames
