@@ -33,10 +33,11 @@ TARGET_OBJECT = "person"
 cameras = []
 camera_count = 5
 for i in range(camera_count):
-    cameras.append(cv2.VideoCapture(i))
+    cap = cv2.VideoCapture(i)
+    if cap.isOpened:
+        cameras.append(cap)
 
 locks = [threading.Lock() for _ in range(camera_count)]
-# processed_frames = {i: None for i in range(camera_count)}
 
 @app.route('/send_notification')
 def send_notification():
@@ -77,7 +78,7 @@ def check_for_target_object(frame, model):
         if row['name'].lower() == TARGET_OBJECT.lower():
             print(f"{TARGET_OBJECT} detected!")
             send_notification()
-            time.sleep(5)
+            time.sleep(5) #TODO: enhance the time interval between detections
 
 def gen_frames(camera_index):
     while True:
@@ -89,13 +90,11 @@ def gen_frames(camera_index):
                 ret, buffer = cv2.imencode('.jpg', frame)
                 check_for_target_object(frame, model)
                 frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/video_feed/<int:camera_index>')
 def video_feed(camera_index):
-    return Response(gen_frames(camera_index),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen_frames(camera_index),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, threaded=True)
