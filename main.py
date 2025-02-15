@@ -5,7 +5,6 @@ import cv2
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-import cam
 import torch
 import threading
 import time
@@ -32,10 +31,12 @@ model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 TARGET_OBJECT = "person"
 
 cameras = []
-frames = []
+camera_count = 5
+for i in range(camera_count):
+    cameras.append(cv2.VideoCapture(i))
 
-MAX_CAMERAS = 4
-
+locks = [threading.Lock() for _ in range(camera_count)]
+# processed_frames = {i: None for i in range(camera_count)}
 
 @app.route('/send_notification')
 def send_notification():
@@ -51,11 +52,6 @@ def send_notification():
     body = 'Danger description'
     result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body, data_payload=data)
     print (result)
-
-# Working streaming method
-# @app.route('/video_feed',methods=['GET'])
-# def video_feed():
-#     return Response(start_processing(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/register_token', methods=['POST'])
@@ -81,59 +77,25 @@ def check_for_target_object(frame, model):
         if row['name'].lower() == TARGET_OBJECT.lower():
             print(f"{TARGET_OBJECT} detected!")
             send_notification()
-            time.sleep(60)
+            time.sleep(5)
 
-
-def capture_frames():
-    global cameras, frames
-    ret = None
+def gen_frames(camera_index):
     while True:
-        for i, cap in enumerate(cameras):
-            ret, frame = cap.read()
-        if ret:
-            frames[i] = frame
-            check_for_target_object(frame, model)
-        
-        time.sleep(0.1)
+        with locks[camera_index]:
+            success, frame = cameras[camera_index].read()
+            if not success:
+                break
+            else:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                check_for_target_object(frame, model)
+                frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-
-def gen_video_feed(cam_index):
-    global frames
-    while True:
-        if len(frames) > cam_index and frames[cam_index] is not None:
-            ret, jpeg = cv2.imencode('.jpg', frames[cam_index])
-            if ret:
-                yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-
-
-@app.route('/video_feed/<int:cam_index>')
-def video_feed(cam_index):
-    #TODO: cameras var isn't accessable here due to threading
-    global cameras
-    if cam_index >= len(cameras):
-        return "Camera index out of range", 404
-    return Response(gen_video_feed(cam_index), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-def initialize_cameras():
-    global cameras, frames
-
-    for i in range(MAX_CAMERAS):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            cameras.append(cap)
-            frames.append(None)
-        else:
-            print(f"Camera {i} could not be opened.")
-
-    if len(cameras) == 0:
-        print("No cameras detected.")
-
+@app.route('/video_feed/<int:camera_index>')
+def video_feed(camera_index):
+    return Response(gen_frames(camera_index),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    logger.info("Running App")
-    initialize_cameras()
-    capture_thread = threading.Thread(target=capture_frames)
-    capture_thread.daemon = True
-    capture_thread.start()
-    app.run(debug=True, port=5000, host='0.0.0.0', threaded=True)
-
+    app.run(host='0.0.0.0', port=5000, threaded=True)
