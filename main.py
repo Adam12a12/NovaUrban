@@ -39,18 +39,19 @@ for i in range(camera_count):
 processed_frames = {i: None for i in range(camera_count)}
 locks = [threading.Lock() for _ in range(camera_count)]
 
-@app.route('/send_notification')
-def send_notification():
+def send_notification(camera_index):
     now = datetime.now()
     today = datetime.today()
-    time = now.strftime('%H:%M;%S')
+    time = now.strftime('%H:%M:%S')
     date = today.strftime('%d-%m-%Y')
     data = { 
-        'time': time,
-        'date': date
+        # 'time': time,
+        # 'date': date,
+        # 'camera_index':  camera_index
         } 
     title = 'Danger Alert'
     body = 'Danger description'
+    # TODO: data fcm.notify returns payload type error
     result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body, data_payload=data)
     print (result)
 
@@ -71,13 +72,13 @@ def index():
     return render_template('base.html')
 
 
-def check_for_target_object(frame, model):
+def check_for_target_object(frame, model, camera_index):
     results = model(frame)
     detected_objects = results.pandas().xywh[0]    
     for _, row in detected_objects.iterrows():
         if row['name'].lower() == TARGET_OBJECT.lower():
             print(f"{TARGET_OBJECT} detected!")
-            send_notification()
+            send_notification(camera_index)
             time.sleep(5) #TODO: enhance the time interval between detections
 
 def process(camera_index):
@@ -86,7 +87,7 @@ def process(camera_index):
             success, frame = cameras[camera_index].read()
             if success:
                 ret, buffer = cv2.imencode('.jpg', frame)
-                check_for_target_object(frame, model)
+                check_for_target_object(frame, model, camera_index)
                 processed_frames[camera_index] = buffer.tobytes()
         
 def gen_frames(camera_index):
