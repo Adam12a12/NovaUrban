@@ -5,7 +5,9 @@ import cv2
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-
+import torch
+import threading
+import time
 
 
 load_dotenv()
@@ -24,52 +26,35 @@ os.environ["XDG_SESSION_TYPE"] = "xcb"
 QT_DEBUG_PLUGINS=1
 is_recording = False
 
+# yolo testing stuff
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+TARGET_OBJECT = "person"
 
-@app.route('/send_notification')
-def send_notification():
+cameras = []
+camera_count = 1
+for i in range(camera_count):
+    cap = cv2.VideoCapture(i)
+    if cap.isOpened:
+        cameras.append(cap)
+processed_frames = {i: None for i in range(camera_count)}
+locks = [threading.Lock() for _ in range(camera_count)]
+
+def send_notification(camera_index):
     now = datetime.now()
     today = datetime.today()
-    time = now.strftime('%H:%M;%S')
+    time = now.strftime('%H:%M:%S')
     date = today.strftime('%d-%m-%Y')
     data = { 
-        'time': time,
-        'date': date
+        # 'time': time,
+        # 'date': date,
+        # 'camera_index':  camera_index
         } 
     title = 'Danger Alert'
     body = 'Danger description'
+    # TODO: data fcm.notify returns payload type error
     result = fcm.notify(fcm_token=DEVICE_TOKEN,notification_title=title,notification_body=body, data_payload=data)
     print (result)
 
-@app.route('/video_feed',methods=['GET'])
-def video_feed():
-    return Response(start_processing(),mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-@app.route('/start_processing')
-def start_processing():
-    cam = cv2.VideoCapture(0)
-
-    frame_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    if is_recording:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (frame_width, frame_height))
-    
-    while True:
-        ret, frame = cam.read()
-        what, buffer = cv2.imencode('.jpg', frame)
-        # cv2.imshow('Camera', frame)
-        frame = buffer.tobytes()
-        buffer.tobytes() 
-        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        if is_recording:
-            out.write(frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
-
-    cam.release()
-    cv2.destroyAllWindows()
 
 @app.route('/register_token', methods=['POST'])
 def register_token():
@@ -86,6 +71,35 @@ def register_token():
 def index():
     return render_template('base.html')
 
-if __name__ == "__main__":
-    logger.info("Running App")
-    app.run(debug=True, port=5000, host='0.0.0.0')
+
+def check_for_target_object(frame, model, camera_index):
+    results = model(frame)
+    detected_objects = results.pandas().xywh[0]    
+    for _, row in detected_objects.iterrows():
+        if row['name'].lower() == TARGET_OBJECT.lower():
+            print(f"{TARGET_OBJECT} detected!")
+            send_notification(camera_index)
+            time.sleep(5) #TODO: enhance the time interval between detections
+
+def process(camera_index):
+    while True:
+        with locks[camera_index]:
+            success, frame = cameras[camera_index].read()
+            if success:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                check_for_target_object(frame, model, camera_index)
+                processed_frames[camera_index] = buffer.tobytes()
+        
+def gen_frames(camera_index):
+    while True:
+        frame = processed_frames[camera_index]
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video_feed/<int:camera_index>')
+def video_feed(camera_index):
+    return Response(gen_frames(camera_index),mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    for i in range(camera_count):
+        threading.Thread(target=process, args=(i,), daemon=True).start()
+    app.run(host='0.0.0.0', port=5000, threaded=True)

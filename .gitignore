@@ -6,3 +6,4 @@ env
 .venv
 .env
 *.db
+yolov5s.pt
