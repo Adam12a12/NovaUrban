@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import logging
 from pyfcm import FCMNotification
 import cv2
@@ -30,12 +30,13 @@ WEIGHTS = {
     'resnet': 0.3
 }
 
-# yolo_model = YOLO('ai_models/best.pt', task="predict")
-# resnet_model = load_model('ai_models/resnet50_model.h5')
+yolo_model = YOLO('ai_models/best.pt', task="predict")
+resnet_model = load_model('ai_models/resnet50_model.h5')
 
 class Stream:
 
     def __init__(self, cam_index):
+        self.cam_index = cam_index
         url = f"http://localhost:5000/video_feed/{cam_index}"
         self.cap = cv2.VideoCapture(url)
         if self.cap.isOpened():
@@ -77,29 +78,27 @@ class Stream:
         frame = preprocess_input(frame)
         return frame
 
-    def process_frames():
+    def process_frames(self):
         while self.is_running:
-            # results = yolo_model(self.frame)
-            # detections = results[0].boxes
-            # yolo_hazard = 1 if len(detections) > 0 else 0
+            results = yolo_model(self.frame)
+            detections = results[0].boxes
+            yolo_hazard = 1 if len(detections) > 0 else 0
 
-            # preprocessed_frame = prepare_frame(self.frame)
-            # resnet_prediction = resnet_model.predict(preprocessed_frame)
-            # resnet_hazard = 1 if np.argmax(resnet_prediction) == 1 else 0
+            preprocessed_frame = prepare_frame(self.frame)
+            resnet_prediction = resnet_model.predict(preprocessed_frame)
+            resnet_hazard = 1 if np.argmax(resnet_prediction) == 1 else 0
             
-            # vote = weighted_voting(yolo_hazard, resnet_hazard)
+            vote = weighted_voting(yolo_hazard, resnet_hazard)
 
-            # detections_data = results[0].boxes.data.cpu().numpy()
-            # yolo_results = [{'class_id': int(det[5]), 'confidence': float(det[4]), 'x_min': float(det[0]), 'y_min': float(det[1]), 'x_max': float(det[2]), 'y_max': float(det[3])} for det in detections_data]
+            detections_data = results[0].boxes.data.cpu().numpy()
+            yolo_results = [{'class_id': int(det[5]), 'confidence': float(det[4]), 'x_min': float(det[0]), 'y_min': float(det[1]), 'x_max': float(det[2]), 'y_max': float(det[3])} for det in detections_data]
 
-            # if vote == 1:
-            #     send_notification(self.cam_index)
-            print("processing {self.cam_index}")
+            if vote == 1:
+                send_notification(self.cam_index)
 
-
-# def weighted_voting(yolo_result, resnet_result):
-#     weighted_sum = (yolo_result * WEIGHTS['yolo'] + resnet_result * WEIGHTS['resnet'])
-#     return 1 if weighted_sum > 0.5 else 0
+def weighted_voting(yolo_result, resnet_result):
+    weighted_sum = (yolo_result * WEIGHTS['yolo'] + resnet_result * WEIGHTS['resnet'])
+    return 1 if weighted_sum > 0.5 else 0
 
 def send_notification(camera_index):
     now = datetime.now()
