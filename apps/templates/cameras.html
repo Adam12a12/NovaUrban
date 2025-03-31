@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Camera Feeds{% endblock %}
+
+{% block content %}
+  <div class="camera-row">
+    <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="Logo" class="logo">
+        {% for index in camera_indexes %}
+        <div class="camera">
+            <h3>Camera {{ index }}</h3>
+            <img src="{{ url_for('video_feed', camera_index=index) }}" alt="Camera {{ index }} Feed">
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
