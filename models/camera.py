@@ -6,6 +6,7 @@ class Camera:
 
     def __init__(self, user = None, password = None, ip = None, port = None, stream_path = None, cam_index = None):
         if cam_index is not None:
+            self.hw_cam_index = cam_index
             self.cap = cv2.VideoCapture(cam_index)
         else:    
             self.url = f"rtsp://{user}:{password}@{ip}:{port}/{stream_path}"
