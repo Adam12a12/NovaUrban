@@ -9,7 +9,7 @@ class Notifications:
         load_dotenv()
         self.server_key = os.getenv('SERVER_KEY')
         self.project_id = os.getenv('PROJECT_ID')
-        self.fcm = FCMNotification(service_account_file="env/novaurban-7d541-firebase-adminsdk-flrke-80914775d4.json", project_id=self.project_id)
+        self.fcm = FCMNotification(service_account_file=os.getenv('FCM_SERVICE_FILE'), project_id=self.project_id)
 
     def send_notification(camera_index):
         now = datetime.now()

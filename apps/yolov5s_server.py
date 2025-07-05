@@ -63,7 +63,7 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-TARGET_OBJECT = "person"
+TARGET_OBJECT = os.getenv('TARGET_OBJECT')
 
 notifs = notifications.Notifications()
 
